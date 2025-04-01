@@ -1,31 +1,21 @@
 import java.util.*;
 
-public class Main {
+public class SolutionWithBacktracking {
     public static void main(String[] args) {
-        int POPULATION_SIZE = 3000;
+        int POPULATION_SIZE = 1000;
         int ROUNDS_WITHOUT_CHANGE = 10;
         double CROSSOVER_RATE = 0.35;
-        double MUTATION_RATE = 0.25;
+        double MUTATION_RATE = 0.15;
         final Random random = new Random();
 
         Scanner scanner = new Scanner(System.in);
         System.out.println("Digite as cidades solicitadas separadas por espaço (ex.: 6 0 3):");
-        String input = "20 0 13 43 25";
+        String input = scanner.nextLine();
         int[] citiesRequested = parseCities(input);
-        if (citiesRequested.length == 0) {
-            System.out.println("Deve solicitar pelo menos uma cidade");
-            return;
-        }
 
         int[][] cities = FileService.readInputFile("cidades.txt");
         if (cities == null) {
             System.out.println("Erro ao abrir arquivo");
-            return;
-        }
-
-
-        if (cities.length < citiesRequested.length) {
-            System.out.println("Mais cidades solicitadas do que as disponíveis");
             return;
         }
 
@@ -35,7 +25,7 @@ public class Main {
             boolean[][] person = new boolean[cities.length][cities.length];
             for (int j = 0; j < cities.length; j++) {
                 for (int k = 0; k < cities.length; k++) {
-                    person[j][k] = random.nextDouble() >= 0.4;
+                    person[j][k] = random.nextDouble() > 0.8;
                 }
             }
             population.add(person);
@@ -50,10 +40,9 @@ public class Main {
             IsValidFeedback bestOfPopulation = null;
             int bestDistance = Integer.MAX_VALUE;
 
-        int index = 1;
             for (boolean[][] person : population) {
-            System.out.println(index++);
                 IsValidFeedback isValidFeedback = isValidSolution(person, cities, citiesRequested);
+                System.out.println("Validou");
 
                 if (isValidFeedback.isValid) {
                     System.out.println("Valido: " + isValidFeedback.visited + " | " + isValidFeedback.distance);
@@ -95,12 +84,12 @@ public class Main {
 
                         for (int k = 0; k < x; k++) {
                             for (int l = 0; l < y; l++) {
-                                children[k][l] = survives.getFirst().person[k][l];
+                                children[x][l] = survives.getFirst().person[x][l];
                             }
                         }
                         for (int k = x; k < cities.length; k++) {
                             for (int l = y; l < cities.length; l++) {
-                                children[k][l] = survives.getLast().person[k][l];
+                                children[x][l] = survives.getLast().person[x][l];
                             }
                         }
                     } else {
@@ -120,7 +109,7 @@ public class Main {
                     newPopulation.add(children);
 
                 } else {
-                    System.out.printf("População irá morrer, apenas %d sobreviventes.", validPopulation.size());
+                    System.out.printf("População irá morrer, apenas %d sobrevivente.", validPopulation.size());
                     return;
                 }
             }
@@ -135,63 +124,73 @@ public class Main {
 
 
     private static IsValidFeedback isValidSolution(boolean[][] person, int[][] cities, int[] citiesRequested) {
-        // A cidade inicial é a primeira da lista de cidades solicitadas
-
-        IsValidFeedback isValidFeedback = new IsValidFeedback(person);
-
         int startCity = citiesRequested[0];
-        isValidFeedback.visited.add(startCity);
-        int currentCity = startCity;
+        List<Integer> visited = new ArrayList<>();
+        visited.add(startCity);
+        int[] bestDistanceReference = {Integer.MAX_VALUE};
+        IsValidFeedback result = explorePaths(person, cities, citiesRequested, startCity, visited, 0, bestDistanceReference);
+        if (result == null){
+            return new IsValidFeedback(person);
+        }
 
-        // Percorre a matriz a partir da cidade atual até voltar ao início
-        while (true) {
-            int nextCity = -1;
-            // Procura a primeira cidade conectada (valor true) na linha da cidade atual
-            for (int j = 0; j < person[currentCity].length; j++) {
-                if (person[currentCity][j]) {
-                    nextCity = j;
+        return result;
+    }
+
+    // backtracking
+    private static IsValidFeedback explorePaths(boolean[][] person, int[][] cities, int[] citiesRequested,
+                                                int currentCity, List<Integer> visited, int currentDistance, int[] bestDistanceReference) {
+        int startCity = citiesRequested[0];
+
+        // limitações
+
+        if (currentDistance >= bestDistanceReference[0]) {
+            return null;
+        }
+
+        if (visited.size() > cities.length + 1) {
+            return null;
+        }
+
+        // caso base - fechou o ciclo
+        if (currentCity == startCity && visited.size() > 1) {
+            boolean allVisited = true;
+            for (int city : citiesRequested) {
+                if (!visited.contains(city)) {
+                    allVisited = false;
                     break;
                 }
             }
-
-            // Se não encontrou conexão, encerra sem sucesso
-            if (nextCity == -1) {
-                break;
-            }
-
-            // Se já encontrou a cidade inicial, fecha o ciclo
-            if (nextCity == startCity) {
-                isValidFeedback.distance += cities[currentCity][nextCity];
-                isValidFeedback.visited.add(nextCity);
-                break;
-            }
-
-            // Se a cidade já foi visitada, o caminho se repete e não é válido
-            if (isValidFeedback.visited.contains(nextCity)) {
-                break;
-            }
-
-            // Adiciona a cidade e continua a partir dela
-            isValidFeedback.distance += cities[currentCity][nextCity];
-            isValidFeedback.visited.add(nextCity);
-            currentCity = nextCity;
+            IsValidFeedback feedback = new IsValidFeedback(person);
+            feedback.visited = new ArrayList<>(visited);
+            feedback.distance = currentDistance;
+            feedback.isValid = allVisited;
+            return feedback;
         }
 
-        // Verifica se o ciclo foi fechado (última cidade é a inicial)
-        if (isValidFeedback.visited.getLast() != startCity) {
-            return isValidFeedback;
-        }
+        IsValidFeedback bestFeedback = null;
 
-        // Verifica se todas as cidades solicitadas foram visitadas durante o percurso
-        for (int city : citiesRequested) {
-            if (!isValidFeedback.visited.contains(city)) {
-                return isValidFeedback;
+        for (int j = 0; j < person[currentCity].length; j++) {
+            if (person[currentCity][j]) {
+
+                if (j != startCity && visited.contains(j)) {
+                    continue;
+                }
+
+                List<Integer> newVisited = new ArrayList<>(visited);
+                newVisited.add(j);
+                int newDistance = currentDistance + cities[currentCity][j];
+
+                IsValidFeedback candidate = explorePaths(person, cities, citiesRequested, j, newVisited, newDistance, bestDistanceReference);
+                if (candidate != null && candidate.isValid) {
+                    if (bestFeedback == null || candidate.distance < bestFeedback.distance) {
+                        bestFeedback = candidate;
+                    }
+                }
             }
         }
-
-        isValidFeedback.isValid = true;
-        return isValidFeedback;
+        return bestFeedback;
     }
+
 
     private static IsValidFeedback getFather(ArrayList<IsValidFeedback> population) {
         Random rand = new Random();
@@ -216,4 +215,5 @@ public class Main {
         }
         return cities;
     }
+
 }
