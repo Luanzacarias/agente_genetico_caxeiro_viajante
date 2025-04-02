@@ -1,10 +1,10 @@
 import java.util.*;
 
 public class SolutionWithoutMatriz {
-    public static int POPULATION_SIZE = 800;
-    public static int ROUNDS_WITHOUT_CHANGE = 30;
-    public static double CROSSOVER_RATE = 0.35;
-    public static double MUTATION_RATE = 0.25;
+    public static int POPULATION_SIZE = 1500;
+    public static int ROUNDS_WITHOUT_CHANGE = 100;
+    public static double CROSSOVER_RATE = 0.17;
+    public static double MUTATION_RATE = 0.1;
 
     public static void main(String[] args) {
         final Random random = new Random();
@@ -50,6 +50,7 @@ public class SolutionWithoutMatriz {
                 Feedback feedback = isValidSolution(route, cities, citiesRequested);
 
                 if (feedback.isValid) {
+                    System.out.println("Valid: " + route);
                     validPopulation.add(feedback);
                     if (feedback.distance < bestDistance) {
                         bestDistance = feedback.distance;
@@ -73,8 +74,6 @@ public class SolutionWithoutMatriz {
 
             for (int i = 0; i < POPULATION_SIZE; i++) {
                 if (validPopulation.size() >= 2) {
-                    ArrayList<Feedback> survives = new ArrayList<>();
-
                     ArrayList<Integer> father1 = getFather(validPopulation, random).route;
                     ArrayList<Integer> father2 = getFather(validPopulation, random).route;
                     ArrayList<Integer> child;
@@ -185,11 +184,10 @@ public class SolutionWithoutMatriz {
     }
 
     private static void mutation(ArrayList<Integer> route, Random random) {
-        int size = route.size();
-        for (int i = 0; i < size; i++) {
+        for (int i = 0; i < route.size(); i++) {
             if (random.nextDouble() <= MUTATION_RATE) {
-                int j = random.nextInt(size);
-                Collections.swap(route, i, j);
+                int j = random.nextInt(route.size());
+                route.remove(j);
             }
         }
     }
