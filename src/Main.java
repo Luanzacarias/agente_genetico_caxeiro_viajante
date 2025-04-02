@@ -10,7 +10,7 @@ public class Main {
 
         Scanner scanner = new Scanner(System.in);
         System.out.println("Digite as cidades solicitadas separadas por espaço (ex.: 6 0 3):");
-        String input = "20 0 13 43 25";
+        String input = scanner.nextLine();
         int[] citiesRequested = parseCities(input);
         if (citiesRequested.length == 0) {
             System.out.println("Deve solicitar pelo menos uma cidade");
@@ -50,9 +50,7 @@ public class Main {
             IsValidFeedback bestOfPopulation = null;
             int bestDistance = Integer.MAX_VALUE;
 
-        int index = 1;
             for (boolean[][] person : population) {
-            System.out.println(index++);
                 IsValidFeedback isValidFeedback = isValidSolution(person, cities, citiesRequested);
 
                 if (isValidFeedback.isValid) {
